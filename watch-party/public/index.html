@@ -36,9 +36,12 @@
 <script>
   const socket = io();
   let player;
-  let isRemoteUpdate = false; // متغير مهم لمنع التكرار اللانهائي
+  let isRemoteUpdate = false; 
+  
+  // قيمة تعويض التأخير (جرب 0.2 أو 0.3 إذا كان النت بطيئاً)
+  const latencyCorrection = 0.25; 
 
-  // 1. إعداد YouTube IFrame API
+  // 1. إعداد YouTube API
   var tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -48,15 +51,14 @@
     player = new YT.Player('player', {
       height: '390',
       width: '640',
-      videoId: 'M7lc1UVf-VE', // فيديو افتراضي
-      playerVars: { 'playsinline': 1, 'rel': 0 },
+      videoId: 'M7lc1UVf-VE',
+      playerVars: { 'playsinline': 1, 'rel': 0, 'controls': 1 },
       events: {
         'onStateChange': onPlayerStateChange
       }
     });
   }
 
-  // 2. استخراج معرف الفيديو من الرابط
   function getVideoId(url) {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
@@ -66,28 +68,34 @@
   function sendVideo() {
     const url = document.getElementById('videoLink').value;
     const videoId = getVideoId(url);
-    if(videoId) {
-      socket.emit('change_video', videoId);
-    } else {
-      alert("الرابط غير صحيح!");
-    }
+    if(videoId) socket.emit('change_video', videoId);
   }
 
-  // 3. التعامل مع أحداث المشغل (إرسال للخادم)
+  // 2. إرسال الأحداث للخادم
   function onPlayerStateChange(event) {
-    if (isRemoteUpdate) return; // إذا كان التغيير قادماً من صديق، لا ترسل إشارة مرة أخرى
+    // نتجاهل التحديث إذا كان قادماً من الكود نفسه (لتجنب تكرار لا نهائي)
+    if (isRemoteUpdate) return;
 
     if (event.data === YT.PlayerState.PLAYING) {
       socket.emit('play_video');
-      socket.emit('sync_time', player.getCurrentTime()); // مزامنة الوقت عند التشغيل
+      socket.emit('sync_time', player.getCurrentTime());
     } 
     else if (event.data === YT.PlayerState.PAUSED) {
       socket.emit('pause_video');
-      socket.emit('sync_time', player.getCurrentTime()); // مزامنة الوقت عند الإيقاف
+      socket.emit('sync_time', player.getCurrentTime());
     }
   }
 
-  // 4. استقبال الأوامر من الخادم (تنفيذ)
+  // فحص دوري كل 3 ثواني لضمان التزامن المستمر حتى بدون ضغط
+  setInterval(() => {
+    if (player && player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING) {
+      if (!isRemoteUpdate) {
+        socket.emit('sync_time', player.getCurrentTime());
+      }
+    }
+  }, 3000);
+
+  // 3. استقبال الأوامر وتطبيق "تعويض التأخير"
   
   socket.on('server_change_video', (videoId) => {
     player.loadVideoById(videoId);
@@ -96,7 +104,7 @@
   socket.on('server_play', () => {
     isRemoteUpdate = true;
     player.playVideo();
-    setTimeout(() => isRemoteUpdate = false, 500); // إعادة التفعيل بعد قليل
+    setTimeout(() => isRemoteUpdate = false, 500);
   });
 
   socket.on('server_pause', () => {
@@ -105,12 +113,25 @@
     setTimeout(() => isRemoteUpdate = false, 500);
   });
 
-  socket.on('server_sync_time', (time) => {
-    // إذا كان الفرق كبيراً (أكثر من ثانية)، عدّل الوقت
-    if (Math.abs(player.getCurrentTime() - time) > 1) {
+  socket.on('server_sync_time', (serverTime) => {
+    if (!player || !player.getCurrentTime) return;
+
+    const myTime = player.getCurrentTime();
+    const diff = Math.abs(myTime - serverTime);
+
+    // إذا كان الفرق أكبر من نصف ثانية، قم بالتصحيح
+    if (diff > 0.5) {
       isRemoteUpdate = true;
-      player.seekTo(time);
-      setTimeout(() => isRemoteUpdate = false, 500);
+      
+      // الحيلة هنا: نقفز للوقت المستلم + وقت التعويض
+      // إلا إذا كان الفرق كبيراً جداً (تقديم يدوي) فلا نضيف التعويض
+      if (diff < 5) {
+          player.seekTo(serverTime + latencyCorrection);
+      } else {
+          player.seekTo(serverTime); // انتقال عادي (Seek)
+      }
+      
+      setTimeout(() => isRemoteUpdate = false, 800);
     }
   });
 
