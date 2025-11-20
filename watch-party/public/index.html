@@ -6,148 +6,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* 1. تصميم الصفحة العام */
+    /* نفس التصميم السابق مع تحسينات بسيطة */
     * { box-sizing: border-box; }
-    body { 
-      background-color: #121212; 
-      color: #e0e0e0; 
-      font-family: 'Tajawal', sans-serif; 
-      margin: 0; 
-      height: 100vh;
-      overflow: hidden; /* منع التمرير للصفحة كاملة */
-    }
-
-    /* الهيكل الرئيسي: تقسيم الشاشة */
-    .main-layout {
-      display: flex;
-      height: 100vh;
-    }
-
-    /* قسم الفيديو (يسار أو يمين حسب اللغة) */
-    .video-section {
-      flex: 3; /* يأخذ 75% من الشاشة */
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: #000;
-    }
-
-    /* قسم الدردشة */
-    .chat-section {
-      flex: 1; /* يأخذ 25% من الشاشة */
-      background: #1e1e1e;
-      border-right: 1px solid #333;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    /* 2. عناصر الفيديو */
-    .controls {
-      width: 100%;
-      max-width: 900px;
-      margin-bottom: 15px;
-      display: flex;
-      gap: 10px;
-    }
+    body { background-color: #121212; color: #e0e0e0; font-family: 'Tajawal', sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+    .main-layout { display: flex; height: 100vh; }
+    .video-section { flex: 3; padding: 20px; display: flex; flex-direction: column; background: #000; position: relative;}
+    .chat-section { flex: 1; background: #1e1e1e; border-right: 1px solid #333; display: flex; flex-direction: column; height: 100%; }
     
-    input.url-input {
-      flex-grow: 1;
-      padding: 10px;
-      border-radius: 5px;
-      border: 1px solid #444;
-      background: #333;
-      color: white;
-    }
-
-    button.btn-play {
-      background: #e50914;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button.btn-play:hover { background: #b20710; }
-
-    .video-wrapper {
-      width: 100%;
-      max-width: 900px;
-      aspect-ratio: 16 / 9;
-      background: #000;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-    }
-    .video-wrapper iframe { width: 100%; height: 100%; }
-
-    /* 3. عناصر الدردشة */
-    .chat-header {
-      padding: 15px;
-      background: #252525;
-      border-bottom: 1px solid #333;
-      text-align: center;
-      font-weight: bold;
-      color: #e50914;
-    }
-
-    .chat-messages {
-      flex-grow: 1;
-      padding: 15px;
-      overflow-y: auto; /* سكرول للرسائل فقط */
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .message {
-      background: #333;
-      padding: 8px 12px;
-      border-radius: 8px;
-      max-width: 90%;
-      font-size: 0.9rem;
-    }
+    .controls { width: 100%; display: flex; gap: 10px; margin-bottom: 15px; z-index: 10; }
+    input.url-input { flex-grow: 1; padding: 10px; background: #333; border: 1px solid #444; color: white; border-radius: 5px; }
+    button { background: #e50914; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold; }
     
-    .message.mine {
-      background: #e50914; /* رسائلي باللون الأحمر */
-      color: white;
-      align-self: flex-end; /* محاذاة لليسار */
-    }
+    /* حاوية الفيديو */
+    .player-container { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
     
-    .msg-author {
-      font-size: 0.75rem;
-      color: #aaa;
-      margin-bottom: 2px;
-      display: block;
-    }
-    .message.mine .msg-author { color: #ffd1d1; }
+    /* مشغل يوتيوب */
+    .video-wrapper-yt { width: 100%; aspect-ratio: 16/9; display: none; } /* مخفي افتراضياً */
+    .video-wrapper-yt iframe { width: 100%; height: 100%; }
 
-    .chat-input-area {
-      padding: 15px;
-      background: #252525;
-      border-top: 1px solid #333;
-      display: flex;
-      gap: 5px;
-    }
-    
-    .chat-input-area input {
-      flex-grow: 1;
-      padding: 10px;
-      border-radius: 20px;
-      border: none;
-      background: #444;
-      color: white;
-    }
+    /* مشغل الملفات المباشرة (Cima4u) */
+    video#html5Player { width: 100%; max-height: 80vh; display: none; outline: none; } /* مخفي افتراضياً */
 
-    /* للتجاوب مع الموبايل */
-    @media (max-width: 768px) {
-      .main-layout { flex-direction: column; overflow: auto; }
-      .video-section { height: 60vh; flex: none; }
-      .chat-section { height: 40vh; flex: none; }
-    }
+    /* الشات */
+    .chat-messages { flex-grow: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message { background: #333; padding: 8px 12px; border-radius: 8px; max-width: 90%; font-size: 0.9rem; }
+    .message.mine { background: #e50914; align-self: flex-end; }
+    .msg-author { font-size: 0.75rem; color: #aaa; display: block; margin-bottom: 2px; }
+    .chat-input-area { padding: 15px; background: #252525; display: flex; gap: 5px; }
+    .chat-input-area input { flex-grow: 1; padding: 10px; border-radius: 20px; border: none; background: #444; color: white; }
+
+    @media (max-width: 768px) { .main-layout { flex-direction: column; overflow: auto; } .video-section { height: 60vh; flex: none; } .chat-section { height: 40vh; flex: none; } }
   </style>
 </head>
 <body>
@@ -156,24 +44,27 @@
   
   <div class="video-section">
     <div class="controls">
-      <input type="text" id="videoLink" class="url-input" placeholder="رابط يوتيوب...">
-      <button onclick="sendVideo()" class="btn-play">تشغيل</button>
+      <input type="text" id="videoLink" class="url-input" placeholder="رابط يوتيوب أو رابط مباشر mp4...">
+      <button onclick="processLink()">تشغيل</button>
     </div>
-    <div class="video-wrapper">
-      <div id="player"></div>
+
+    <div class="player-container">
+      <div class="video-wrapper-yt" id="ytWrapper">
+        <div id="ytPlayer"></div>
+      </div>
+
+      <video id="html5Player" controls playsinline>
+        <source src="" type="video/mp4">
+        متصفحك لا يدعم الفيديو.
+      </video>
     </div>
   </div>
 
   <div class="chat-section">
-    <div class="chat-header">غرفة الدردشة 💬</div>
-    <div class="chat-messages" id="messagesList">
-      <div class="message" style="background: transparent; color: #666; text-align: center;">
-        أهلاً بك في السينما!
-      </div>
-    </div>
+    <div class="chat-messages" id="messagesList"></div>
     <div class="chat-input-area">
       <input type="text" id="msgInput" placeholder="اكتب رسالة..." onkeypress="handleEnter(event)">
-      <button onclick="sendMessage()" class="btn-play" style="border-radius: 50%; width: 40px; height: 40px; padding: 0;">➤</button>
+      <button onclick="sendMessage()">➤</button>
     </div>
   </div>
 
@@ -182,72 +73,66 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
   const socket = io();
-  let player;
+  let ytPlayer;
+  const html5Player = document.getElementById('html5Player');
+  const ytWrapper = document.getElementById('ytWrapper');
+  
   let isRemoteUpdate = false;
-  const latencyCorrection = 0.3; 
+  let currentMode = 'none'; // 'youtube' or 'mp4'
+  const latencyCorrection = 0.3;
+  
+  let myName = prompt("الاسم المستعار:") || "زائر";
 
-  // طلب الاسم
-  let myName = prompt("الرجاء إدخال اسمك المستعار:") || "مشاهد مجهول";
-
-  // --- دوال مساعدة للدردشة ---
-  const messagesList = document.getElementById('messagesList');
-
-  // دالة موحدة لإضافة رسالة للشاشة
-  function appendMessageToScreen(data) {
-    const div = document.createElement('div');
-    const isMine = data.name === myName;
+  // -----------------------------------------
+  // 1. منطق اختيار المشغل
+  // -----------------------------------------
+  function processLink() {
+    const url = document.getElementById('videoLink').value;
+    // هل هو يوتيوب؟
+    const ytId = getVideoId(url);
     
-    div.className = 'message' + (isMine ? ' mine' : '');
-    div.innerHTML = `
-      <span class="msg-author">${isMine ? 'أنت' : data.name}</span>
-      ${data.text}
-    `;
-    
-    messagesList.appendChild(div);
-    messagesList.scrollTop = messagesList.scrollHeight; // نزول للأسفل
-  }
-
-  // 1. استقبال تاريخ الرسائل القديمة (دفعة واحدة)
-  socket.on('load_history', (historyArray) => {
-    // نمسح رسالة الترحيب الافتراضية
-    messagesList.innerHTML = ''; 
-    
-    // نعرض كل الرسائل القديمة
-    historyArray.forEach((msg) => {
-      appendMessageToScreen(msg);
-    });
-  });
-
-  // 2. استقبال رسالة جديدة (واحدة فقط)
-  socket.on('receive_msg', (data) => {
-    appendMessageToScreen(data);
-  });
-
-  // إرسال رسالة
-  function sendMessage() {
-    const input = document.getElementById('msgInput');
-    const msg = input.value.trim();
-    if (msg) {
-      socket.emit('send_msg', { name: myName, text: msg });
-      input.value = '';
+    if (ytId) {
+      socket.emit('change_video', { type: 'youtube', src: ytId });
+    } else {
+      // نفترض أنه رابط مباشر mp4
+      socket.emit('change_video', { type: 'mp4', src: url });
     }
   }
 
-  function handleEnter(e) {
-    if (e.key === 'Enter') sendMessage();
-  }
+  // استقبال تغيير الفيديو من السيرفر
+  socket.on('server_change_video', (data) => {
+    currentMode = data.type;
+    
+    if (currentMode === 'youtube') {
+      html5Player.style.display = 'none';
+      html5Player.pause();
+      ytWrapper.style.display = 'block';
+      if(ytPlayer && ytPlayer.loadVideoById) ytPlayer.loadVideoById(data.src);
+    
+    } else if (currentMode === 'mp4') {
+      ytWrapper.style.display = 'none';
+      if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+      
+      html5Player.style.display = 'block';
+      html5Player.src = data.src;
+      html5Player.play();
+    }
+  });
 
-  // --- كود اليوتيوب ---
+  // -----------------------------------------
+  // 2. إعدادات مشغل YouTube
+  // -----------------------------------------
   var tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   var firstScriptTag = document.getElementsByTagName('script')[0];
   firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
   function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
-      videoId: 'M7lc1UVf-VE',
-      playerVars: { 'playsinline': 1, 'rel': 0, 'controls': 1 },
-      events: { 'onStateChange': onPlayerStateChange }
+    ytPlayer = new YT.Player('ytPlayer', {
+      height: '100%', width: '100%',
+      videoId: '',
+      playerVars: { 'playsinline': 1, 'controls': 1 },
+      events: { 'onStateChange': onYtStateChange }
     });
   }
 
@@ -257,48 +142,79 @@
     return (match && match[2].length === 11) ? match[2] : null;
   }
 
-  function sendVideo() {
-    const url = document.getElementById('videoLink').value;
-    const videoId = getVideoId(url);
-    if(videoId) socket.emit('change_video', videoId);
+  function onYtStateChange(event) {
+    if (currentMode !== 'youtube' || isRemoteUpdate) return;
+    if (event.data === YT.PlayerState.PLAYING) emitEvent('play', ytPlayer.getCurrentTime());
+    else if (event.data === YT.PlayerState.PAUSED) emitEvent('pause', ytPlayer.getCurrentTime());
   }
 
-  function onPlayerStateChange(event) {
-    if (isRemoteUpdate) return;
-    if (event.data === YT.PlayerState.PLAYING) {
-      socket.emit('play_video');
-      socket.emit('sync_time', player.getCurrentTime());
-    } else if (event.data === YT.PlayerState.PAUSED) {
-      socket.emit('pause_video');
-      socket.emit('sync_time', player.getCurrentTime());
-    }
+  // -----------------------------------------
+  // 3. إعدادات مشغل HTML5 (Cima4u)
+  // -----------------------------------------
+  html5Player.onplay = () => { if(!isRemoteUpdate && currentMode === 'mp4') emitEvent('play', html5Player.currentTime); };
+  html5Player.onpause = () => { if(!isRemoteUpdate && currentMode === 'mp4') emitEvent('pause', html5Player.currentTime); };
+  html5Player.onseeked = () => { if(!isRemoteUpdate && currentMode === 'mp4') emitEvent('sync', html5Player.currentTime); };
+
+  // -----------------------------------------
+  // 4. المزامنة (موحدة للمشغلين)
+  // -----------------------------------------
+  function emitEvent(action, time) {
+    if (action === 'play') { socket.emit('play_video'); socket.emit('sync_time', time); }
+    if (action === 'pause') { socket.emit('pause_video'); socket.emit('sync_time', time); }
+    if (action === 'sync') { socket.emit('sync_time', time); }
   }
-  
-  socket.on('server_change_video', (id) => player.loadVideoById(id));
-  
+
   socket.on('server_play', () => {
     isRemoteUpdate = true;
-    player.playVideo();
+    if (currentMode === 'youtube' && ytPlayer.playVideo) ytPlayer.playVideo();
+    else if (currentMode === 'mp4') html5Player.play();
     setTimeout(() => isRemoteUpdate = false, 500);
   });
 
   socket.on('server_pause', () => {
     isRemoteUpdate = true;
-    player.pauseVideo();
+    if (currentMode === 'youtube' && ytPlayer.pauseVideo) ytPlayer.pauseVideo();
+    else if (currentMode === 'mp4') html5Player.pause();
     setTimeout(() => isRemoteUpdate = false, 500);
   });
 
   socket.on('server_sync_time', (serverTime) => {
-    if (!player || !player.getCurrentTime) return;
-    const diff = Math.abs(player.getCurrentTime() - serverTime);
+    let myTime = 0;
+    if (currentMode === 'youtube' && ytPlayer.getCurrentTime) myTime = ytPlayer.getCurrentTime();
+    else if (currentMode === 'mp4') myTime = html5Player.currentTime;
+
+    const diff = Math.abs(myTime - serverTime);
     if (diff > 0.5) {
       isRemoteUpdate = true;
-      if (diff < 5) player.seekTo(serverTime + latencyCorrection);
-      else player.seekTo(serverTime);
+      const newTime = (diff < 5) ? serverTime + latencyCorrection : serverTime;
+      
+      if (currentMode === 'youtube') ytPlayer.seekTo(newTime);
+      else if (currentMode === 'mp4') html5Player.currentTime = newTime;
+
       setTimeout(() => isRemoteUpdate = false, 800);
     }
   });
+
+  // -----------------------------------------
+  // 5. الدردشة (نفس الكود السابق)
+  // -----------------------------------------
+  const messagesList = document.getElementById('messagesList');
+  function appendMessageToScreen(data) {
+    const div = document.createElement('div');
+    div.className = 'message' + (data.name === myName ? ' mine' : '');
+    div.innerHTML = `<span class="msg-author">${data.name}</span>${data.text}`;
+    messagesList.appendChild(div);
+    messagesList.scrollTop = messagesList.scrollHeight;
+  }
+  socket.on('load_history', (hist) => { messagesList.innerHTML = ''; hist.forEach(appendMessageToScreen); });
+  socket.on('receive_msg', appendMessageToScreen);
+  
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    if (input.value.trim()) { socket.emit('send_msg', { name: myName, text: input.value.trim() }); input.value = ''; }
+  }
+  function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
 </script>
 </body>
-
 </html>
