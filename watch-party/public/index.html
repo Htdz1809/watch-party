@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>سينما الأصدقاء 🍿</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background-color: #1a1a1a; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; margin: 0; padding: 20px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { color: #e50914; text-transform: uppercase; letter-spacing: 2px; }
+    .control-panel { background: #333; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; gap: 10px; justify-content: center; }
+    input { padding: 10px; width: 70%; border-radius: 5px; border: none; outline: none; }
+    button { padding: 10px 20px; background: #e50914; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+    button:hover { background: #b20710; }
+    .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>غرفة المشاهدة الجماعية</h1>
+  
+  <div class="control-panel">
+    <input type="text" id="videoLink" placeholder="ضع رابط يوتيوب هنا (مثال: https://youtu.be/xyz...)">
+    <button onclick="sendVideo()">تشغيل للجميع</button>
+  </div>
+
+  <div class="video-wrapper">
+    <div id="player"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+
+<script>
+  const socket = io();
+  let player;
+  let isRemoteUpdate = false; // متغير مهم لمنع التكرار اللانهائي
+
+  // 1. إعداد YouTube IFrame API
+  var tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  var firstScriptTag = document.getElementsByTagName('script')[0];
+  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('player', {
+      height: '390',
+      width: '640',
+      videoId: 'M7lc1UVf-VE', // فيديو افتراضي
+      playerVars: { 'playsinline': 1, 'rel': 0 },
+      events: {
+        'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+
+  // 2. استخراج معرف الفيديو من الرابط
+  function getVideoId(url) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  function sendVideo() {
+    const url = document.getElementById('videoLink').value;
+    const videoId = getVideoId(url);
+    if(videoId) {
+      socket.emit('change_video', videoId);
+    } else {
+      alert("الرابط غير صحيح!");
+    }
+  }
+
+  // 3. التعامل مع أحداث المشغل (إرسال للخادم)
+  function onPlayerStateChange(event) {
+    if (isRemoteUpdate) return; // إذا كان التغيير قادماً من صديق، لا ترسل إشارة مرة أخرى
+
+    if (event.data === YT.PlayerState.PLAYING) {
+      socket.emit('play_video');
+      socket.emit('sync_time', player.getCurrentTime()); // مزامنة الوقت عند التشغيل
+    } 
+    else if (event.data === YT.PlayerState.PAUSED) {
+      socket.emit('pause_video');
+      socket.emit('sync_time', player.getCurrentTime()); // مزامنة الوقت عند الإيقاف
+    }
+  }
+
+  // 4. استقبال الأوامر من الخادم (تنفيذ)
+  
+  socket.on('server_change_video', (videoId) => {
+    player.loadVideoById(videoId);
+  });
+
+  socket.on('server_play', () => {
+    isRemoteUpdate = true;
+    player.playVideo();
+    setTimeout(() => isRemoteUpdate = false, 500); // إعادة التفعيل بعد قليل
+  });
+
+  socket.on('server_pause', () => {
+    isRemoteUpdate = true;
+    player.pauseVideo();
+    setTimeout(() => isRemoteUpdate = false, 500);
+  });
+
+  socket.on('server_sync_time', (time) => {
+    // إذا كان الفرق كبيراً (أكثر من ثانية)، عدّل الوقت
+    if (Math.abs(player.getCurrentTime() - time) > 1) {
+      isRemoteUpdate = true;
+      player.seekTo(time);
+      setTimeout(() => isRemoteUpdate = false, 500);
+    }
+  });
+
+</script>
+</body>
+</html>
