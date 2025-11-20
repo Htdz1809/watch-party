@@ -5,9 +5,15 @@ const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
+// 1. مكان حفظ الرسائل (ذاكرة مؤقتة)
+let messageHistory = []; 
+
 io.on("connection", (socket) => {
   
-  // 1. الفيديو
+  // 2. أول ما يدخل الشخص، نرسل له الرسائل القديمة
+  socket.emit("load_history", messageHistory);
+
+  // --- أوامر الفيديو ---
   socket.on("change_video", (videoId) => {
     io.emit("server_change_video", videoId);
   });
@@ -24,10 +30,18 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("server_sync_time", time);
   });
 
-  // 2. الدردشة (الجديد)
+  // --- أوامر الدردشة ---
   socket.on("send_msg", (data) => {
-    // data تحتوي على: { name: "Ahmed", msg: "hello" }
-    io.emit("receive_msg", data); // إرسال الرسالة للجميع
+    // 3. حفظ الرسالة في الذاكرة
+    messageHistory.push(data);
+    
+    // (اختياري) نحتفظ بآخر 50 رسالة فقط حتى لا يمتلئ السيرفر
+    if (messageHistory.length > 50) {
+      messageHistory.shift();
+    }
+
+    // إرسال للكل
+    io.emit("receive_msg", data);
   });
 
 });
