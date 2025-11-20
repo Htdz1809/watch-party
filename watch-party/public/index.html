@@ -186,10 +186,58 @@
   let isRemoteUpdate = false;
   const latencyCorrection = 0.3; 
 
-  // 1. طلب الاسم عند الدخول
+  // طلب الاسم
   let myName = prompt("الرجاء إدخال اسمك المستعار:") || "مشاهد مجهول";
 
-  // --- كود اليوتيوب (نفس السابق) ---
+  // --- دوال مساعدة للدردشة ---
+  const messagesList = document.getElementById('messagesList');
+
+  // دالة موحدة لإضافة رسالة للشاشة
+  function appendMessageToScreen(data) {
+    const div = document.createElement('div');
+    const isMine = data.name === myName;
+    
+    div.className = 'message' + (isMine ? ' mine' : '');
+    div.innerHTML = `
+      <span class="msg-author">${isMine ? 'أنت' : data.name}</span>
+      ${data.text}
+    `;
+    
+    messagesList.appendChild(div);
+    messagesList.scrollTop = messagesList.scrollHeight; // نزول للأسفل
+  }
+
+  // 1. استقبال تاريخ الرسائل القديمة (دفعة واحدة)
+  socket.on('load_history', (historyArray) => {
+    // نمسح رسالة الترحيب الافتراضية
+    messagesList.innerHTML = ''; 
+    
+    // نعرض كل الرسائل القديمة
+    historyArray.forEach((msg) => {
+      appendMessageToScreen(msg);
+    });
+  });
+
+  // 2. استقبال رسالة جديدة (واحدة فقط)
+  socket.on('receive_msg', (data) => {
+    appendMessageToScreen(data);
+  });
+
+  // إرسال رسالة
+  function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const msg = input.value.trim();
+    if (msg) {
+      socket.emit('send_msg', { name: myName, text: msg });
+      input.value = '';
+    }
+  }
+
+  function handleEnter(e) {
+    if (e.key === 'Enter') sendMessage();
+  }
+
+  // --- كود اليوتيوب ---
   var tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   var firstScriptTag = document.getElementsByTagName('script')[0];
@@ -225,42 +273,7 @@
       socket.emit('sync_time', player.getCurrentTime());
     }
   }
-
-  // --- كود الدردشة الجديد ---
   
-  function sendMessage() {
-    const input = document.getElementById('msgInput');
-    const msg = input.value.trim();
-    if (msg) {
-      // إرسال الرسالة للخادم
-      socket.emit('send_msg', { name: myName, text: msg });
-      input.value = '';
-    }
-  }
-
-  function handleEnter(e) {
-    if (e.key === 'Enter') sendMessage();
-  }
-
-  // استقبال الرسائل
-  socket.on('receive_msg', (data) => {
-    const list = document.getElementById('messagesList');
-    const div = document.createElement('div');
-    
-    // تنسيق الرسالة
-    const isMine = data.name === myName;
-    div.className = 'message' + (isMine ? ' mine' : '');
-    
-    div.innerHTML = `
-      <span class="msg-author">${isMine ? 'أنت' : data.name}</span>
-      ${data.text}
-    `;
-    
-    list.appendChild(div);
-    list.scrollTop = list.scrollHeight; // نزول تلقائي لآخر رسالة
-  });
-
-  // --- استقبال أوامر الفيديو (نفس السابق) ---
   socket.on('server_change_video', (id) => player.loadVideoById(id));
   
   socket.on('server_play', () => {
@@ -285,7 +298,7 @@
       setTimeout(() => isRemoteUpdate = false, 800);
     }
   });
-
 </script>
 </body>
+
 </html>
