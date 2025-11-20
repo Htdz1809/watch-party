@@ -3,36 +3,35 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
-// جعل المجلد public عاماً للوصول لملف html
 app.use(express.static("public"));
 
-// التعامل مع الاتصالات
 io.on("connection", (socket) => {
-  console.log("مستخدم دخل الغرفة: " + socket.id);
-
-  // 1. عند تغيير الفيديو
+  
+  // 1. الفيديو
   socket.on("change_video", (videoId) => {
-    console.log("تغيير الفيديو إلى:", videoId);
-    io.emit("server_change_video", videoId); // إرسال للكل
+    io.emit("server_change_video", videoId);
   });
 
-  // 2. عند التشغيل (Play)
   socket.on("play_video", () => {
-    socket.broadcast.emit("server_play"); // إرسال للجميع ما عدا المرسل
+    socket.broadcast.emit("server_play");
   });
 
-  // 3. عند الإيقاف (Pause)
   socket.on("pause_video", () => {
     socket.broadcast.emit("server_pause");
   });
 
-  // 4. عند التزامن (Seek/Time update)
   socket.on("sync_time", (time) => {
     socket.broadcast.emit("server_sync_time", time);
   });
+
+  // 2. الدردشة (الجديد)
+  socket.on("send_msg", (data) => {
+    // data تحتوي على: { name: "Ahmed", msg: "hello" }
+    io.emit("receive_msg", data); // إرسال الرسالة للجميع
+  });
+
 });
 
-// تشغيل الخادم
 const listener = http.listen(process.env.PORT || 3000, () => {
-  console.log("التطبيق يعمل على المنفذ " + listener.address().port);
+  console.log("Server is running...");
 });
